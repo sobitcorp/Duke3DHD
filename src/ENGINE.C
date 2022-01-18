@@ -18,6 +18,7 @@
 #include <i86.h>
 #include "build.h"
 #include "pragmas.h"
+#include "names.h"
 
 long stereowidth = 23040, stereopixelwidth = 28, ostereopixelwidth = -1;
 volatile long stereomode = 0, visualpage, activepage, whiteband, blackband;
@@ -90,7 +91,9 @@ long slopalookup[2048];
 static char permanentlock = 255;
 long artversion, mapversion;
 char *pic = NULL;
-char picsiz[MAXTILES], tilefilenum[MAXTILES];
+char picsiz[MAXTILES], tilefilenum[MAXTILES], tupscale[MAXTILES];
+short tilesrx[MAXTILES], tilesry[MAXTILES];
+
 long lastageclock;
 long tilefileoffs[MAXTILES];
 
@@ -248,6 +251,12 @@ static char inpreparemirror = 0;
 static long mirrorsx1, mirrorsy1, mirrorsx2, mirrorsy2;
 
 long totalclocklock;
+
+long lastrenderclk=0;
+long inscreencap=0;
+char inparascan=0;
+extern long widescr, widescrmenus;
+extern char inbonusmenu;
 
 extern long mmxoverlay();
 #pragma aux mmxoverlay modify [eax ebx ecx edx];
@@ -900,7 +909,7 @@ drawalls (long bunch)
 					globalxpanning = (long)wal->xpanning;
 					globalypanning = (long)wal->ypanning;
 					globalshiftval = (picsiz[globalpicnum]>>4);
-					if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+					if (pow2long[globalshiftval] != tilesry[globalpicnum]) globalshiftval++;
 					globalshiftval = 32-globalshiftval;
 					if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,(short)wallnum+16384);
 					globalshade = (long)wal->shade;
@@ -908,6 +917,7 @@ drawalls (long bunch)
 					if (sec->visibility != 0) globvis = mulscale4(globvis,(long)((unsigned char)(sec->visibility+16)));
 					globalpal = (long)wal->pal;
 					globalyscale = (wal->yrepeat<<(globalshiftval-19));
+					globalyscale <<= tupscale[globalpicnum];
 					if ((globalorientation&4) == 0)
 						globalzd = (((globalposz-nextsec->ceilingz)*globalyscale)<<8);
 					else
@@ -1010,9 +1020,10 @@ drawalls (long bunch)
 					globvis = globalvisibility;
 					if (sec->visibility != 0) globvis = mulscale4(globvis,(long)((unsigned char)(sec->visibility+16)));
 					globalshiftval = (picsiz[globalpicnum]>>4);
-					if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+					if (pow2long[globalshiftval] != tilesry[globalpicnum]) globalshiftval++;
 					globalshiftval = 32-globalshiftval;
 					globalyscale = (wal->yrepeat<<(globalshiftval-19));
+					globalyscale <<= tupscale[globalpicnum];
 					if ((globalorientation&4) == 0)
 						globalzd = (((globalposz-nextsec->floorz)*globalyscale)<<8);
 					else
@@ -1047,7 +1058,7 @@ drawalls (long bunch)
 							}
 					}
 				}
-				if ((fz[2] > fz[0]) || (fz[3] > fz[1]) || (globalposz > fz[4]))
+				if (widescr || (fz[2] > fz[0]) || (fz[3] > fz[1]) || (globalposz > fz[4]))
 				{
 					i = x2-x1+1;
 					if (smostcnt+i < MAXYSAVES)
@@ -1099,9 +1110,10 @@ drawalls (long bunch)
 			if (sec->visibility != 0) globvis = mulscale4(globvis,(long)((unsigned char)(sec->visibility+16)));
 			globalpal = (long)wal->pal;
 			globalshiftval = (picsiz[globalpicnum]>>4);
-			if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+			if (pow2long[globalshiftval] != tilesry[globalpicnum]) globalshiftval++;
 			globalshiftval = 32-globalshiftval;
 			globalyscale = (wal->yrepeat<<(globalshiftval-19));
+			globalyscale <<= tupscale[globalpicnum];
 			if (nextsectnum >= 0)
 			{
 				if ((globalorientation&4) == 0) globalzd = globalposz-nextsec->ceilingz;
@@ -1138,7 +1150,7 @@ prepwall(long z, walltype *wal)
 {
 	long i, l, ol, splc, sinc, x, topinc, top, botinc, bot, hplc, walxrepeat;
 
-	walxrepeat = (wal->xrepeat<<3);
+	walxrepeat = (wal->xrepeat<<3)<<tupscale[globalpicnum];
 
 		//lwall calculation
 	i = xb1[z]-halfxdimen;
@@ -1270,6 +1282,8 @@ ceilscan (long x1, long x2, long sectnum)
 	globalxshift = (8-(picsiz[globalpicnum]&15));
 	globalyshift = (8-(picsiz[globalpicnum]>>4));
 	if (globalorientation&8) { globalxshift++; globalyshift++; }
+	globalxshift+=tupscale[globalpicnum];
+	globalyshift+=tupscale[globalpicnum];
 
 	if ((globalorientation&0x4) > 0)
 	{
@@ -1436,6 +1450,8 @@ florscan (long x1, long x2, long sectnum)
 	globalxshift = (8-(picsiz[globalpicnum]&15));
 	globalyshift = (8-(picsiz[globalpicnum]>>4));
 	if (globalorientation&8) { globalxshift++; globalyshift++; }
+	globalxshift+=tupscale[globalpicnum];
+	globalyshift+=tupscale[globalpicnum];
 
 	if ((globalorientation&0x4) > 0)
 	{
@@ -1549,13 +1565,15 @@ wallscan(long x1, long x2, short *uwal, short *dwal, long *swal, long *lwal)
 	long y1ve[4], y2ve[4], u4, d4, dax, z, tsizx, tsizy;
 	char bad;
 
-	tsizx = tilesizx[globalpicnum];
-	tsizy = tilesizy[globalpicnum];
+	if (globalpicnum == MIRROR) { tilesrx[globalpicnum]=tilesizx[globalpicnum]; tilesry[globalpicnum]=tilesizy[globalpicnum]; }
+	tsizx = tilesrx[globalpicnum];
+	tsizy = tilesry[globalpicnum];
 	setgotpic(globalpicnum);
 	if ((tsizx <= 0) || (tsizy <= 0)) return;
 	if ((uwal[x1] > ydimen) && (uwal[x2] > ydimen)) return;
 	if ((dwal[x1] < 0) && (dwal[x2] < 0)) return;
 
+	globalxpanning <<= tupscale[globalpicnum];
 	if (waloff[globalpicnum] == 0) loadtile(globalpicnum);
 
 	xnice = (pow2long[picsiz[globalpicnum]&15] == tsizx);
@@ -1587,7 +1605,7 @@ wallscan(long x1, long x2, short *uwal, short *dwal, long *swal, long *lwal)
 
 		vlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],bufplce[0]+waloff[globalpicnum],x+frameoffset+ylookup[y1ve[0]]);
 	}
-	for(;x<=x2-3;x+=4)
+	for(;x<=x2-3 && !inparascan;x+=4)
 	{
 		bad = 0;
 		for(z=3;z>=0;z--)
@@ -1671,13 +1689,14 @@ maskwallscan(long x1, long x2, short *uwal, short *dwal, long *swal, long *lwal)
 	long y1ve[4], y2ve[4], u4, d4, dax, z, p, tsizx, tsizy;
 	char bad;
 
-	tsizx = tilesizx[globalpicnum];
-	tsizy = tilesizy[globalpicnum];
+	tsizx = tilesrx[globalpicnum];
+	tsizy = tilesry[globalpicnum];
 	setgotpic(globalpicnum);
 	if ((tsizx <= 0) || (tsizy <= 0)) return;
 	if ((uwal[x1] > ydimen) && (uwal[x2] > ydimen)) return;
 	if ((dwal[x1] < 0) && (dwal[x2] < 0)) return;
 
+	globalxpanning <<= tupscale[globalpicnum];
 	if (waloff[globalpicnum] == 0) loadtile(globalpicnum);
 
 	startx = x1;
@@ -1809,8 +1828,8 @@ transmaskvline (long x)
 	vplc = globalzd + vinc*(y1v-globalhoriz+1);
 
 	i = lwall[x]+globalxpanning;
-	if (i >= tilesizx[globalpicnum]) i %= tilesizx[globalpicnum];
-	bufplc = waloff[globalpicnum]+i*tilesizy[globalpicnum];
+	if (i >= tilesrx[globalpicnum]) i %= tilesrx[globalpicnum];
+	bufplc = waloff[globalpicnum]+i*tilesry[globalpicnum];
 
 	p = ylookup[y1v]+x+frameoffset;
 
@@ -1847,12 +1866,12 @@ transmaskvline2 (long x)
 	vplce[1] = globalzd + vince[1]*(y1ve[1]-globalhoriz+1);
 
 	i = lwall[x] + globalxpanning;
-	if (i >= tilesizx[globalpicnum]) i %= tilesizx[globalpicnum];
-	bufplce[0] = waloff[globalpicnum]+i*tilesizy[globalpicnum];
+	if (i >= tilesrx[globalpicnum]) i %= tilesrx[globalpicnum];
+	bufplce[0] = waloff[globalpicnum]+i*tilesry[globalpicnum];
 
 	i = lwall[x2] + globalxpanning;
-	if (i >= tilesizx[globalpicnum]) i %= tilesizx[globalpicnum];
-	bufplce[1] = waloff[globalpicnum]+i*tilesizy[globalpicnum];
+	if (i >= tilesrx[globalpicnum]) i %= tilesrx[globalpicnum];
+	bufplce[1] = waloff[globalpicnum]+i*tilesry[globalpicnum];
 
 	y1 = max(y1ve[0],y1ve[1]);
 	y2 = min(y2ve[0],y2ve[1]);
@@ -2279,6 +2298,10 @@ nextpage()
 	//sprintf(snotbuf,"Total: %ld",k);
 	//printext256((j>>5)*40+32,(j&31)*6,31,-1,snotbuf,1);
 
+	//cap FPS at TICRATE (120) to avoid flashing due to the game drawing frames faster than they can be displayed
+	while (lastrenderclk == totalclock) ;
+	lastrenderclk = totalclock;
+
 	switch(qsetmode)
 	{
 		case 200:
@@ -2303,7 +2326,8 @@ nextpage()
 					{
 						visualpage = activepage;
 						setvisualpage(visualpage);
-						if (!origbuffermode)
+						if (ydim > 600 && !inscreencap && !inbonusmenu) buffermode = 1;
+						else if (!origbuffermode)
 						{
 							buffermode = ((transarea<<3) > totalarea);
 							transarea = totalarea = 0;
@@ -2364,7 +2388,7 @@ loadtile (short tilenume)
 	long i, dasiz;
 
 	if ((unsigned)tilenume >= (unsigned)MAXTILES) return;
-	dasiz = tilesizx[tilenume]*tilesizy[tilenume];
+	dasiz = tilesrx[tilenume]*tilesry[tilenume];
 	if (dasiz <= 0) return;
 
 	i = tilefilenum[tilenume];
@@ -2400,7 +2424,7 @@ loadtile (short tilenume)
 	artfilplc = tilefileoffs[tilenume]+dasiz;
 }
 
-allocatepermanenttile(short tilenume, long xsiz, long ysiz)
+/*allocatepermanenttile(short tilenume, long xsiz, long ysiz)
 {
 	long i, j, x, y, dasiz;
 
@@ -2412,8 +2436,8 @@ allocatepermanenttile(short tilenume, long xsiz, long ysiz)
 	walock[tilenume] = 255;
 	allocache(&waloff[tilenume],dasiz,&walock[tilenume]);
 
-	tilesizx[tilenume] = xsiz;
-	tilesizy[tilenume] = ysiz;
+	tilesizx[tilenume] = tilesizx[tilenume] = xsiz;
+	tilesizy[tilenume] = tilesizy[tilenume] = ysiz;
 	picanm[tilenume] = 0;
 
 	j = 15; while ((j > 1) && (pow2long[j] > xsiz)) j--;
@@ -2422,7 +2446,7 @@ allocatepermanenttile(short tilenume, long xsiz, long ysiz)
 	picsiz[tilenume] += ((char)(j<<4));
 
 	return(waloff[tilenume]);
-}
+}*/
 
 loadpics(char *filename)
 {
@@ -2433,8 +2457,9 @@ loadpics(char *filename)
 
 	for(i=0;i<MAXTILES;i++)
 	{
-		tilesizx[i] = 0;
-		tilesizy[i] = 0;
+		tilesizx[i] = tilesrx[i] = 0;
+		tilesizy[i] = tilesry[i] = 0;
+		tupscale[i] = 0;
 		picanm[i] = 0L;
 	}
 
@@ -2487,13 +2512,18 @@ loadpics(char *filename)
 	}
 	initcache((FP_OFF(pic)+15)&0xfffffff0,(cachesize-((-FP_OFF(pic))&15))&0xfffffff0);
 
+	memcpy(tilesrx, tilesizx, MAXTILES*sizeof(tilesizx[0]));
+	memcpy(tilesry, tilesizy, MAXTILES*sizeof(tilesizy[0]));
 	for(i=0;i<MAXTILES;i++)
 	{
+		tupscale[i] = (picanm[i]>>28)&3;
+		tilesizx[i] >>= tupscale[i];
+		tilesizy[i] >>= tupscale[i];
 		j = 15;
-		while ((j > 1) && (pow2long[j] > tilesizx[i])) j--;
+		while ((j > 1) && (pow2long[j] > tilesrx[i])) j--;
 		picsiz[i] = ((char)j);
 		j = 15;
-		while ((j > 1) && (pow2long[j] > tilesizy[i])) j--;
+		while ((j > 1) && (pow2long[j] > tilesry[i])) j--;
 		picsiz[i] += ((char)(j<<4));
 	}
 
@@ -2608,6 +2638,12 @@ screencapture(char *filename, char inverseit)
 {
 	char *ptr;
 	long fil, i, bufplc, p, col, ncol, leng, numbytes, xres;
+
+	if (ydim > 600 && !inbonusmenu) {
+		inscreencap=1;
+		nextpage();
+		inscreencap=0;
+	}
 
 	filename[4] = ((capturecount/1000)%10)+48;
 	filename[5] = ((capturecount/100)%10)+48;
@@ -2790,7 +2826,7 @@ initksqrt()
 	}
 }
 
-copytilepiece(long tilenume1, long sx1, long sy1, long xsiz, long ysiz,
+/*copytilepiece(long tilenume1, long sx1, long sy1, long xsiz, long ysiz,
 				  long tilenume2, long sx2, long sy2)
 {
 	char *ptr1, *ptr2, dat;
@@ -2825,7 +2861,7 @@ copytilepiece(long tilenume1, long sx1, long sy1, long xsiz, long ysiz,
 			x1++; if (x1 >= xsiz1) x1 = 0;
 		}
 	}
-}
+}*/
 
 drawmasks()
 {
@@ -3001,9 +3037,10 @@ drawmaskwall(short damaskwallcnt)
 	if (sec->visibility != 0) globvis = mulscale4(globvis,(long)((unsigned char)(sec->visibility+16)));
 	globalpal = (long)wal->pal;
 	globalshiftval = (picsiz[globalpicnum]>>4);
-	if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+	if (pow2long[globalshiftval] != tilesry[globalpicnum]) globalshiftval++;
 	globalshiftval = 32-globalshiftval;
 	globalyscale = (wal->yrepeat<<(globalshiftval-19));
+	globalyscale <<= tupscale[globalpicnum];
 	if ((globalorientation&4) == 0)
 		globalzd = (((globalposz-z1)*globalyscale)<<8);
 	else
@@ -3111,12 +3148,14 @@ drawsprite (long snum)
 
 		xv = mulscale16(((long)tspr->xrepeat)<<16,xyaspect);
 
-		xspan = tilesizx[tilenum];
-		yspan = tilesizy[tilenum];
+		xspan = tilesrx[tilenum];
+		yspan = tilesry[tilenum];
+		yspan >>= tupscale[tilenum];
 		xsiz = mulscale30(siz,xv*xspan);
 		ysiz = mulscale14(siz,tspr->yrepeat*yspan);
+		xsiz >>= tupscale[tilenum];
 
-		if (((tilesizx[tilenum]>>11) >= xsiz) || (yspan >= (ysiz>>1)))
+		if (((tilesrx[tilenum]>>11) >= xsiz) || (yspan >= (ysiz>>1)))
 			return;  //Watch out for divscale overflow
 
 		x1 = xb-(xsiz>>1);
@@ -3245,9 +3284,10 @@ drawsprite (long snum)
 		globvis = globalvisibility;
 		if (sec->visibility != 0) globvis = mulscale4(globvis,(long)((unsigned char)(sec->visibility+16)));
 		globalshiftval = (picsiz[globalpicnum]>>4);
-		if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+		if (pow2long[globalshiftval] != tilesry[globalpicnum]) globalshiftval++;
 		globalshiftval = 32-globalshiftval;
 		globalyscale = divscale(512,tspr->yrepeat,globalshiftval-19);
+		globalyscale <<= tupscale[tilenum];
 		globalzd = (((globalposz-z1)*globalyscale)<<8);
 		if ((cstat&8) > 0)
 		{
@@ -3268,9 +3308,9 @@ drawsprite (long snum)
 		if ((cstat&4) > 0) xoff = -xoff;
 		if ((cstat&8) > 0) yoff = -yoff;
 
-		xspan = tilesizx[tilenum]; yspan = tilesizy[tilenum];
-		xv = tspr->xrepeat*sintable[(tspr->ang+2560+1536)&2047];
-		yv = tspr->xrepeat*sintable[(tspr->ang+2048+1536)&2047];
+		xspan = tilesrx[tilenum]; yspan = tilesizy[tilenum];
+		xv = (tspr->xrepeat>>tupscale[tilenum])*sintable[(tspr->ang+2560+1536)&2047];
+		yv = (tspr->xrepeat>>tupscale[tilenum])*sintable[(tspr->ang+2048+1536)&2047];
 		i = (xspan>>1)+xoff;
 		x1 = tspr->x-globalposx-mulscale16(xv,i); x2 = x1+mulscale16(xv,xspan);
 		y1 = tspr->y-globalposy-mulscale16(yv,i); y2 = y1+mulscale16(yv,xspan);
@@ -3388,9 +3428,10 @@ drawsprite (long snum)
 		globvis = globalvisibility;
 		if (sec->visibility != 0) globvis = mulscale4(globvis,(long)((unsigned char)(sec->visibility+16)));
 		globalshiftval = (picsiz[globalpicnum]>>4);
-		if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+		if (pow2long[globalshiftval] != tilesry[globalpicnum]) globalshiftval++;
 		globalshiftval = 32-globalshiftval;
 		globalyscale = divscale(512,tspr->yrepeat,globalshiftval-19);
+		globalyscale <<= tupscale[tilenum];
 		globalzd = (((globalposz-z1)*globalyscale)<<8);
 		if ((cstat&8) > 0)
 		{
@@ -3805,6 +3846,8 @@ drawsprite (long snum)
 			globalx2 = mulscale(globalx2,xspan,x);
 		}
 
+		globalx1 <<= tupscale[tilenum];
+		globalx2 <<= tupscale[tilenum];
 		dax = globalxpanning; day = globalypanning;
 		globalxpanning = -dmulscale6(globalx1,day,globalx2,dax);
 		globalypanning = -dmulscale6(globaly1,day,globaly2,dax);
@@ -4663,6 +4706,7 @@ hitscan(long xs, long ys, long zs, short sectnum, long vx, long vy, long vz,
 			if ((cstat&dasprclipmask) == 0) continue;
 
 			x1 = spr->x; y1 = spr->y; z1 = spr->z;
+			//if (spr->picnum == DUKELYINGDEAD) z1 += (6<<8);
 			switch(cstat&48)
 			{
 				case 0:
@@ -6550,16 +6594,33 @@ dorotatesprite (long sx, long sy, long z, short a, short picnum, signed char das
 	long i, x, y, x1, y1, x2, y2, gx1, gy1, p, bufplc, palookupoffs;
 	long xsiz, ysiz, xoff, yoff, npoints, yplc, yinc, lx, rx, xx, xend;
 	long xv, yv, xv2, yv2, obuffermode, qlinemode, y1ve[4], y2ve[4], u4, d4;
-	char bad;
-
-	xsiz = tilesizx[picnum]; ysiz = tilesizy[picnum];
+	char bad, wide=0;
+	float wider;
+	
+	//if (picnum == BOTTOMSTATUSBAR && cx1) dapalnum = 255;
+	if (widescr) wide=1;
+	//if (!(dastat&1) && dastat&2 && dastat&8 && dastat&32) wide=0;	//SBT - add dastat special case: bits values 2,8,32 all set and bit value 1 unset = force disable widescreen for this sprite
+	if (wide && (picnum == MAXTILES-2 || picnum == BIGHOLE || picnum == LOADSCREEN || picnum == SCUBAMASK || picnum == STATIC)) wide=0;
+	if (wide && (picnum == BETASCREEN) && !tupscale[picnum]) wide = 0;
+	if (wide) {
+		if (picnum == BOTTOMSTATUSBAR || (cx1==0 && cy1==0 && cx2==xdim-1 && cy2==ydim-1 && dastat&2 )) {
+			wider = (widescrmenus/320.F);
+			sx *= wider;
+			sx += (320-widescrmenus)<<15;	
+			if (cx1 != 0) { cx1 = xdim/2 - wider*(xdim/2-cx1) - 1; }
+			if (cx2 != xdim-1) { cx2 = xdim/2 - wider*(xdim/2-cx2) + 1; }		
+		} else wider = (widescr/320.F);
+	}
+	z >>= tupscale[picnum];
+	if (!tilesrx[picnum]) tilesrx[picnum] = tilesizx[picnum];
+	if (!tilesry[picnum]) tilesry[picnum] = tilesizy[picnum];
+	xsiz = tilesrx[picnum]; ysiz = tilesry[picnum];
 	if (dastat&16) { xoff = 0; yoff = 0; }
 	else
 	{
-		xoff = (long)((signed char)((picanm[picnum]>>8)&255))+(xsiz>>1);
-		yoff = (long)((signed char)((picanm[picnum]>>16)&255))+(ysiz>>1);
+		xoff = ((long)((signed char)((picanm[picnum]>>8)&255))<<tupscale[picnum])+(xsiz>>1);
+		yoff = ((long)((signed char)((picanm[picnum]>>16)&255))<<tupscale[picnum])+(ysiz>>1);
 	}
-
 	if (dastat&4) yoff = ysiz-yoff;
 
 	cosang = sintable[(a+512)&2047]; sinang = sintable[a&2047];
@@ -6595,6 +6656,10 @@ dorotatesprite (long sx, long sy, long z, short a, short picnum, signed char das
 	{
 		xv2 = xv;
 		yv2 = yv;
+	}
+	if (wide) {
+		xv2 *= wider;
+		yv2 *= wider;
 	}
 
 	ry1[0] = sy - (yv*xoff + xv*yoff);
@@ -6659,6 +6724,10 @@ dorotatesprite (long sx, long sy, long z, short a, short picnum, signed char das
 	{
 		yv2 = -xv;
 		xv2 = yv;
+	}
+	if (wide) {
+		xv2 /= wider;
+		yv2 /= wider;
 	}
 
 	x1 = (lx>>16); x2 = (rx>>16);
@@ -7227,8 +7296,8 @@ drawmapview (long dax, long day, long zoome, short ang)
 			}
 			globalpicnum = sec->floorpicnum;
 			if ((unsigned)globalpicnum >= (unsigned)MAXTILES) globalpicnum = 0;
+			if ((tilesizx[globalpicnum] <= 0) || (tilesizy[globalpicnum] <= 0)) continue;	//SBT fixed crash on some maps - setgotpic() was called before checking dims. Somehow this bug was not present in the retail game...
 			setgotpic(globalpicnum);
-			if ((tilesizx[globalpicnum] <= 0) || (tilesizy[globalpicnum] <= 0)) continue;
 			if ((picanm[globalpicnum]&192) != 0) globalpicnum += animateoffs((short)globalpicnum,s);
 			if (waloff[globalpicnum] == 0) loadtile(globalpicnum);
 			globalbufplc = waloff[globalpicnum];
@@ -7264,6 +7333,8 @@ drawmapview (long dax, long day, long zoome, short ang)
 			globalxshift = (8-(picsiz[globalpicnum]&15));
 			globalyshift = (8-(picsiz[globalpicnum]>>4));
 			if (globalorientation&8) {globalxshift++; globalyshift++; }
+			globalxshift+=tupscale[globalpicnum];
+			globalyshift+=tupscale[globalpicnum];
 
 			sethlinesizes(picsiz[globalpicnum]&15,picsiz[globalpicnum]>>4,globalbufplc);
 
@@ -7310,7 +7381,7 @@ drawmapview (long dax, long day, long zoome, short ang)
 
 			k = spr->ang;
 			cosang = sintable[(k+512)&2047]; sinang = sintable[k];
-			xspan = tilesizx[tilenum]; xrepeat = spr->xrepeat;
+			xspan = tilesrx[tilenum]; xrepeat = spr->xrepeat>>tupscale[tilenum];
 			yspan = tilesizy[tilenum]; yrepeat = spr->yrepeat;
 
 			ox = ((xspan>>1)+xoff)*xrepeat; oy = ((yspan>>1)+yoff)*yrepeat;
@@ -7791,7 +7862,10 @@ setviewtotile(short tilenume, long xsiz, long ysiz)
 	long i, j;
 
 		//DRAWROOMS TO TILE BACKUP&SET CODE
-	tilesizx[tilenume] = xsiz; tilesizy[tilenume] = ysiz;
+
+	tilesizx[tilenume] = xsiz;  tilesizy[tilenume] = ysiz;
+	xsiz<<=tupscale[tilenume]; ysiz<<=tupscale[tilenume]; 
+	tilesrx[tilenume] = xsiz; tilesry[tilenume] = ysiz;
 	bakxsiz[setviewcnt] = xsiz; bakysiz[setviewcnt] = ysiz;
 	bakvidoption[setviewcnt] = vidoption; vidoption = 2;
 	bakframeplace[setviewcnt] = frameplace; frameplace = waloff[tilenume];
@@ -7832,7 +7906,7 @@ squarerotatetile(short tilenume)
 	long i, j, k, xsiz, ysiz;
 	char *ptr1, *ptr2;
 
-	xsiz = tilesizx[tilenume]; ysiz = tilesizy[tilenume];
+	xsiz = tilesrx[tilenume]; ysiz = tilesry[tilenume];
 
 		//supports square tiles only for rotation part
 	if (xsiz == ysiz)
@@ -8296,6 +8370,8 @@ grouscan (long dax1, long dax2, long sectnum, char dastat)
 
 	i = 8-(picsiz[globalpicnum]&15); j = 8-(picsiz[globalpicnum]>>4);
 	if (globalorientation&8) { i++; j++; }
+	i+=tupscale[globalpicnum];
+	j+=tupscale[globalpicnum];
 	globalx1 <<= (i+12); globalx2 <<= i; globalx <<= i;
 	globaly1 <<= (j+12); globaly2 <<= j; globaly <<= j;
 
@@ -8375,6 +8451,7 @@ parascan (long dax1, long dax2, long sectnum, char dastat, long bunch)
 	long i, j, k, l, m, n, x, y, z, wallnum, nextsectnum, globalhorizbak;
 	short *topptr, *botptr;
 
+	inparascan=1;
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
 	globalhorizbak = globalhoriz;
@@ -8408,10 +8485,12 @@ parascan (long dax1, long dax2, long sectnum, char dastat, long bunch)
 	if ((unsigned)globalpicnum >= (unsigned)MAXTILES) globalpicnum = 0;
 	if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,(short)sectnum);
 	globalshiftval = (picsiz[globalpicnum]>>4);
-	if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+	if (pow2long[globalshiftval] != tilesry[globalpicnum]) globalshiftval++;
 	globalshiftval = 32-globalshiftval;
-	globalzd = (((tilesizy[globalpicnum]>>1)+parallaxyoffs)<<globalshiftval)+(globalypanning<<24);
+	globalzd = (((tilesry[globalpicnum]>>1)+parallaxyoffs)<<globalshiftval)+(globalypanning<<24);
 	globalyscale = (8<<(globalshiftval-19));
+	globalyscale <<= tupscale[globalpicnum];
+	if (widescr) globalyscale *= (widescr+320)/600.F;
 	//if (globalorientation&256) globalyscale = -globalyscale, globalzd = -globalzd;
 
 	k = 11 - (picsiz[globalpicnum]&15) - pskybits;
@@ -8505,6 +8584,7 @@ parascan (long dax1, long dax2, long sectnum, char dastat, long bunch)
 		globalpicnum = l;
 	}
 	globalhoriz = globalhorizbak;
+	inparascan=0;
 }
 
 interrupt stereohandler1()

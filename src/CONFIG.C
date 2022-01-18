@@ -69,6 +69,8 @@ int32 ScreenMode;
 int32 ScreenWidth;
 int32 ScreenHeight;
 
+extern int32 widescr, widescrmenus;
+
 static char setupfilename[128]={SETUPFILENAME};
 static int32 scripthandle;
 static int32 setupread=0;
@@ -595,6 +597,8 @@ void CONFIG_ReadSetup( void )
    SCRIPT_GetNumber( scripthandle, "Screen Setup", "ScreenGamma",&ud.brightness);
    SCRIPT_GetNumber( scripthandle, "Screen Setup", "ScreenSize",&ud.screen_size);
    SCRIPT_GetNumber( scripthandle, "Screen Setup", "Out",&ud.lockout);
+   SCRIPT_GetNumber( scripthandle, "Screen Setup", "Widescreen",&widescr);
+   SCRIPT_GetNumber( scripthandle, "Screen Setup", "WidescreenMenus",&widescrmenus);
 
    SCRIPT_GetNumber( scripthandle, "Misc", "Executions",&ud.executions);
    ud.executions++;
@@ -658,6 +662,16 @@ void CONFIG_ReadSetup( void )
 
    CONFIG_ReadKeys();
 
+   if (widescr && widescr < 16) widescr = 240;
+   if (widescrmenus == 240 || widescrmenus == 249 || widescrmenus == 256 || widescrmenus == 268) widescrmenus = 1;
+   if (widescrmenus < 16) 
+      switch(ScreenWidth) {
+         case 320: widescrmenus=268; break;
+         case 800: widescrmenus=256; break;
+         case 1024: widescrmenus=249; break;
+         default: widescrmenus=240;
+      }
+
    switch (ControllerType)
       {
       case controltype_keyboardandmouse:
@@ -698,6 +712,8 @@ void CONFIG_WriteSetup( void )
    SCRIPT_PutNumber( scripthandle, "Screen Setup", "Tilt",ud.screen_tilting,false,false);
    SCRIPT_PutNumber( scripthandle, "Screen Setup", "Messages",ud.fta_on,false,false);
    SCRIPT_PutNumber( scripthandle, "Screen Setup", "Out",ud.lockout,false,false);
+   SCRIPT_PutNumber( scripthandle, "Screen Setup", "Widescreen",widescr,false,false);
+   SCRIPT_PutNumber( scripthandle, "Screen Setup", "WidescreenMenus",widescrmenus,false,false);
    SCRIPT_PutNumber( scripthandle, "Sound Setup", "FXVolume",FXVolume,false,false);
    SCRIPT_PutNumber( scripthandle, "Sound Setup", "MusicVolume",MusicVolume,false,false);
    SCRIPT_PutNumber( scripthandle, "Sound Setup", "SoundToggle",SoundToggle,false,false);

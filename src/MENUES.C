@@ -248,6 +248,8 @@ loadplayer(signed char spot)
          pus = NUMPAGES;
          vscrn();
          drawbackground();
+         nextpage();
+         drawbackground();
          menutext(160,100,0,0,"LOADING...");
          nextpage();
     }

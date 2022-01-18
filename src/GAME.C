@@ -44,12 +44,12 @@ Prepared for public release: 03/21/2003 - Charlie Wiederhold, 3D Realms
 #ifdef VOLUMEONE
     #define VERSION "1.4"
 #else
-    #define VERSION "1.4"
+    #define VERSION "1.5.1-HD"
 #endif
 
 #define HEAD   "Duke Nukem 3D Unregistered Shareware v"VERSION" "
 #ifdef PLUTOPAK
-#define HEAD2  "Duke Nukem 3D v"VERSION" - Atomic Edition"
+#define HEAD2  "Duke Nukem 3D v1.5.1 - Atomic Edition HD"
 #else
 #define HEAD2  "Duke Nukem 3D Full Version v"VERSION
 #endif
@@ -78,7 +78,7 @@ char firstdemofile[80] = { '\0' };
 
 #define patchstatusbar(x1,y1,x2,y2)                                        \
 {                                                                          \
-    rotatesprite(0,(200-34)<<16,65536L,0,BOTTOMSTATUSBAR,4,0,10+16+64+128, \
+    rotatesprite(160<<16,(200-3)<<16,65536L,0,BOTTOMSTATUSBAR,4,0,10+64+128, \
         scale(x1,xdim,320),scale(y1,ydim,200),                             \
         scale(x2,xdim,320)-1,scale(y2,ydim,200)-1);                        \
 }
@@ -102,6 +102,10 @@ int sendmessagecommand = -1;
 task *TimerPtr=NULL;
 
 extern long lastvisinc;
+
+int32 widescr=240, widescrmenus=256, widescrbk=240;
+char indemomenu=0, inbonusmenu=0;
+
 
 void timerhandler()
 {
@@ -1170,30 +1174,24 @@ short badguypic(short pn)
 
 void myos(long x, long y, short tilenum, signed char shade, char orientation)
 {
-    char p;
-    short a;
-
-    if(orientation&4)
-        a = 1024;
-    else a = 0;
-
-    p = sector[ps[screenpeek].cursectnum].floorpal;
-    rotatesprite(x<<16,y<<16,65536L,a,tilenum,shade,p,2|orientation,windowx1,windowy1,windowx2,windowy2);
+    myospal(x,y,tilenum,shade,orientation,0);
 }
 
 void myospal(long x, long y, short tilenum, signed char shade, char orientation, char p)
 {
-    char fp;
+    char fp, wide = widescr;
     short a;
 
     if(orientation&4)
         a = 1024;
     else a = 0;
+    if (wide) {
+        if (tilenum > CHAINGUN && tilenum < CHAINGUN+5) x-=3;
+        if (a && tilenum >= HANDHOLDINGLASER && tilenum < TRIPBOMB) x+=34;
+    }
 
     fp = sector[ps[screenpeek].cursectnum].floorpal;
-
-    rotatesprite(x<<16,y<<16,65536L,a,tilenum,shade,p,2|orientation,windowx1,windowy1,windowx2,windowy2);
-
+    rotatesprite(x<<16,y<<16,65536L,a,tilenum,shade,p,2|orientation|(wide?32:0),windowx1+(wide&&(!a)?80:0),windowy1,windowx2-(wide&&a?80:0),windowy2);
 }
 
 void invennum(long x,long y,char num1,char ha,char sbits)
@@ -1453,7 +1451,7 @@ void scratchmarks(long x,long y,long n,char s,char p)
   */
 void displayinventory(struct player_struct *p)
 {
-    short n, j, xoff, y;
+    short n, j, xoff, y, woff=0;
 
     j = xoff = 0;
 
@@ -1504,8 +1502,10 @@ void displayinventory(struct player_struct *p)
 
             xoff += 22;
 
+            if (widescr) woff = -5;
+
             if(p->inven_icon == j+1)
-                rotatesprite((xoff-2)<<16,(y+19)<<16,65536L,1024,ARROW,-32,0,2+16,windowx1,windowy1,windowx2,windowy2);
+                rotatesprite((xoff-2+woff)<<16,(y+19)<<16,65536L,1024,ARROW,-32,0,2+16,windowx1,windowy1,windowx2,windowy2);
         }
 
         j++;
@@ -1517,16 +1517,17 @@ void displayinventory(struct player_struct *p)
 void displayfragbar(void)
 {
     short i, j;
-
+    int32 tw = widescr;
+    widescr = 0;
     j = 0;
 
     for(i=connecthead;i>=0;i=connectpoint2[i])
         if(i > j) j = i;
 
-    rotatesprite(0,0,65600L,0,FRAGBAR,0,0,2+8+16+64+128,0,0,xdim-1,ydim-1);
-    if(j >= 4) rotatesprite(319,(8)<<16,65600L,0,FRAGBAR,0,0,10+16+64+128,0,0,xdim-1,ydim-1);
-    if(j >= 8) rotatesprite(319,(16)<<16,65600L,0,FRAGBAR,0,0,10+16+64+128,0,0,xdim-1,ydim-1);
-    if(j >= 12) rotatesprite(319,(24)<<16,65600L,0,FRAGBAR,0,0,10+16+64+128,0,0,xdim-1,ydim-1);
+    rotatesprite(160<<16,5<<16,65600L,0,FRAGBAR,0,0,2+8+64+128,0,0,xdim-1,ydim-1);
+    if(j >= 4) rotatesprite(160<<16,(13)<<16,65600L,0,FRAGBAR,0,0,10+64+128,0,0,xdim-1,ydim-1);
+    if(j >= 8) rotatesprite(160<<16,(21)<<16,65600L,0,FRAGBAR,0,0,10+64+128,0,0,xdim-1,ydim-1);
+    if(j >= 12) rotatesprite(160<<16,(29)<<16,65600L,0,FRAGBAR,0,0,10+64+128,0,0,xdim-1,ydim-1);
 
     for(i=connecthead;i>=0;i=connectpoint2[i])
     {
@@ -1534,6 +1535,7 @@ void displayfragbar(void)
         sprintf(tempbuf,"%d",ps[i].frag-ps[i].fraggedself);
         minitext(17+50+(73*(i&3)),2+((i&28)<<1),tempbuf,sprite[ps[i].i].pal,2+8+16+128);
     }
+    widescr = tw;
 }
 
 void coolgaugetext(short snum)
@@ -1569,18 +1571,20 @@ void coolgaugetext(short snum)
 
     if (ss == 4)   //DRAW MINI STATUS BAR:
     {
-        rotatesprite(5<<16,(200-28)<<16,65536L,0,HEALTHBOX,0,21,10+16,0,0,xdim-1,ydim-1);
+        if (widescr && widescrmenus) ss = ((widescrmenus/320.F)-1)*160;
+        else ss = 0;
+        rotatesprite((5+ss)<<16,(200-28)<<16,65536L,0,HEALTHBOX,0,21,10+16,0,0,xdim-1,ydim-1);
         if (p->inven_icon)
-            rotatesprite(69<<16,(200-30)<<16,65536L,0,INVENTORYBOX,0,21,10+16,0,0,xdim-1,ydim-1);
+            rotatesprite((69+ss)<<16,(200-30)<<16,65536L,0,INVENTORYBOX,0,21,10+16,0,0,xdim-1,ydim-1);
 
         if(sprite[p->i].pal == 1 && p->last_extra < 2)
-            digitalnumber(20,200-17,1,-16,10+16);
-        else digitalnumber(20,200-17,p->last_extra,-16,10+16);
+            digitalnumber(20+ss,200-17,1,-16,10+16);
+        else digitalnumber(20+ss,200-17,p->last_extra,-16,10+16);
 
-        rotatesprite(37<<16,(200-28)<<16,65536L,0,AMMOBOX,0,21,10+16,0,0,xdim-1,ydim-1);
+        rotatesprite((37+ss)<<16,(200-28)<<16,65536L,0,AMMOBOX,0,21,10+16,0,0,xdim-1,ydim-1);
 
         if (p->curr_weapon == HANDREMOTE_WEAPON) i = HANDBOMB_WEAPON; else i = p->curr_weapon;
-        digitalnumber(53,200-17,p->ammo_amount[i],-16,10+16);
+        digitalnumber(53+ss,200-17,p->ammo_amount[i],-16,10+16);
 
         o = 158; permbit = 0;
         if (p->inven_icon)
@@ -1596,9 +1600,9 @@ void coolgaugetext(short snum)
                 case 7: i = BOOT_ICON; break;
                 default: i = -1;
             }
-            if (i >= 0) rotatesprite((231-o)<<16,(200-21)<<16,65536L,0,i,0,0,10+16+permbit,0,0,xdim-1,ydim-1);
+            if (i >= 0) rotatesprite((231-o+ss)<<16,(200-21)<<16,65536L,0,i,0,0,10+16+permbit,0,0,xdim-1,ydim-1);
 
-            minitext(292-30-o,190,"%",6,10+16+permbit);
+            minitext(292-30-o+ss,190,"%",6,10+16+permbit);
 
             j = 0x80000000;
             switch(p->inven_icon)
@@ -1611,10 +1615,10 @@ void coolgaugetext(short snum)
                 case 6: i = ((p->scuba_amount+63)>>6); break;
                 case 7: i = (p->boot_amount>>1); break;
             }
-            invennum(284-30-o,200-6,(char)i,0,10+permbit);
-            if (j > 0) minitext(288-30-o,180,"ON",0,10+16+permbit);
-            else if (j != 0x80000000) minitext(284-30-o,180,"OFF",2,10+16+permbit);
-            if (p->inven_icon >= 6) minitext(284-35-o,180,"AUTO",2,10+16+permbit);
+            invennum(284-30-o+ss,200-6,(char)i,0,10+permbit);
+            if (j > 0) minitext(288-30-o+ss,180,"ON",0,10+16+permbit);
+            else if (j != 0x80000000) minitext(284-30-o+ss,180,"OFF",2,10+16+permbit);
+            if (p->inven_icon >= 6) minitext(284-35-o+ss,180,"AUTO",2,10+16+permbit);
         }
         return;
     }
@@ -2528,7 +2532,7 @@ void view(struct player_struct *pp, long *vx, long *vy,long *vz,short *vsectnum,
     //REPLACE FULLY
 void drawbackground(void)
 {
-     short dapicnum;
+     short dapicnum, df = (indemomenu?0:128);
      long x,y,x1,y1,x2,y2,topy;
 
      flushperms();
@@ -2553,7 +2557,7 @@ void drawbackground(void)
 
      for(y=y1;y<y2;y+=128)
           for(x=0;x<xdim;x+=128)
-                rotatesprite(x<<16,y<<16,65536L,0,dapicnum,8,0,8+16+64+128,0,y1,xdim-1,y2-1);
+                rotatesprite(x<<16,y<<16,65536L,0,dapicnum,8,0,8+16+64+df,0,y1,xdim-1,y2-1);
 
      if(ud.screen_size > 8)
      {
@@ -2586,6 +2590,7 @@ void drawbackground(void)
           rotatesprite((x2+1)<<16,(y2+1)<<16,65536L,1024,VIEWBORDER+1,0,0,8+16+64+128,x1,y1,x2,y2);
           rotatesprite(x1<<16,(y2+1)<<16,65536L,1536,VIEWBORDER+1,0,0,8+16+64+128,x1,y1,x2,y2);
      }
+     //nextpage();
 }
 
 
@@ -2753,8 +2758,8 @@ static long oyrepeat=-1;
 
 void displayrooms(short snum,long smoothratio)
 {
-    long cposx,cposy,cposz,dst,j,fz,cz,hz,lz;
-    short sect, cang, k, choriz,tsect;
+    long cposx,cposy,cposz,dst,j,fz,cz,hz,lz,byxaspect;
+    short sect, cang, k, choriz,tsect, svtw, svth;
     struct player_struct *p;
     long tposx,tposy,tposz,dx,dy,thoriz,i;
     short tang;
@@ -2811,6 +2816,8 @@ void displayrooms(short snum,long smoothratio)
             oyrepeat = i;
             setaspect(oyrepeat,yxaspect);
         }
+        byxaspect = yxaspect;
+        if (widescr) setaspect((long)(oyrepeat*(320.F/widescr)), (long)(78642*(320.F/widescr)));
 
         if(screencapt)
         {
@@ -2822,14 +2829,16 @@ void displayrooms(short snum,long smoothratio)
         else if( ( ud.screen_tilting && p->rotscrnang ) || ud.detail==0 )
         {
                 if (ud.screen_tilting) tang = p->rotscrnang; else tang = 0;
+                svtw = min(1024,ScreenWidth);
+                svth = min(1024,ScreenHeight);
 
                 walock[MAXTILES-2] = 255;
                 if (waloff[MAXTILES-2] == 0)
-                    allocache(&waloff[MAXTILES-2],320L*320L,&walock[MAXTILES-2]);
+                    allocache(&waloff[MAXTILES-2],svtw*svtw,&walock[MAXTILES-2]);
                 if ((tang&1023) == 0)
-                    setviewtotile(MAXTILES-2,200L>>(1-ud.detail),320L>>(1-ud.detail));
+                    setviewtotile(MAXTILES-2,svth>>(1-ud.detail),svtw>>(1-ud.detail));
                 else
-                    setviewtotile(MAXTILES-2,320L>>(1-ud.detail),320L>>(1-ud.detail));
+                    setviewtotile(MAXTILES-2,svtw>>(1-ud.detail),svtw>>(1-ud.detail));
                 if ((tang&1023) == 512)
                 {     //Block off unscreen section of 90ø tilted screen
                     j = ((320-60)>>(1-ud.detail));
@@ -2843,6 +2852,7 @@ void displayrooms(short snum,long smoothratio)
                 i = (tang&511); if (i > 256) i = 512-i;
                 i = sintable[i+512]*8 + sintable[i]*5L;
                 setaspect(i>>1,yxaspect);
+                if (widescr) setaspect((long)((i>>1)*(320.F/widescr)), (long)(66845*(320.F/widescr)));
           }
 
           if ( (snum == myconnectindex) && (numplayers > 1) )
@@ -2956,11 +2966,12 @@ void displayrooms(short snum,long smoothratio)
             setviewback();
             picanm[MAXTILES-2] &= 0xff0000ff;
             i = (tang&511); if (i > 256) i = 512-i;
-            i = sintable[i+512]*8 + sintable[i]*5L;
+            i = sintable[i+512]*((float)80/(svtw/32)) + sintable[i]*((float)50/(svtw/32));
             if ((1-ud.detail) == 0) i >>= 1;
             rotatesprite(160<<16,100<<16,i,tang+512,MAXTILES-2,0,0,4+2+64,windowx1,windowy1,windowx2,windowy2);
             walock[MAXTILES-2] = 199;
         }
+        if (widescr) setaspect(oyrepeat, byxaspect);
     }
 
     restoreinterpolations();
@@ -6554,7 +6565,7 @@ void nonsharedkeys(void)
     if(KB_KeyPressed( sc_F11 ))
     {
         KB_ClearKeyDown( sc_F11 );
-        if(SHIFTS_IS_PRESSED) ud.brightness-=4;
+        /*if(SHIFTS_IS_PRESSED) ud.brightness-=4;
         else ud.brightness+=4;
 
         if (ud.brightness > (7<<2) )
@@ -6564,7 +6575,14 @@ void nonsharedkeys(void)
 
         setbrightness(ud.brightness>>2,&ps[myconnectindex].palette[0]);
         if(ud.brightness < 20) FTA( 29 + (ud.brightness>>2) ,&ps[myconnectindex]);
-        else if(ud.brightness < 40) FTA( 96 + (ud.brightness>>2) - 5,&ps[myconnectindex]);
+        else if(ud.brightness < 40) FTA( 96 + (ud.brightness>>2) - 5,&ps[myconnectindex]);*/
+        if (widescr) { widescrbk = widescr; widescr = 0; }
+        else widescr = widescrbk ? widescrbk : 240;
+        FTA(188+(widescr?1:0),&ps[myconnectindex]);
+        /*widescrmenus--;
+        if(SHIFTS_IS_PRESSED)  widescrmenus+=2;
+        sprite[ps[myconnectindex].i].extra = widescrmenus;*/
+        pus = 1;
     }
 }
 
@@ -6937,6 +6955,9 @@ void Logo(void)
 
     setview(0,0,xdim-1,ydim-1);
     clearview(0L);
+    nextpage();
+    clearview(0L);
+    nextpage();
     palto(0,0,0,63);
 
     flushperms();
@@ -6974,7 +6995,7 @@ void Logo(void)
 
     ps[myconnectindex].palette = titlepal;
     flushperms();
-    rotatesprite(0,0,65536L,0,BETASCREEN,0,0,2+8+16+64,0,0,xdim-1,ydim-1);
+    rotatesprite(160<<16,100<<16,65536L,0,BETASCREEN,0,0,2+8+64,0,0,xdim-1,ydim-1);
     KB_FlushKeyboardQueue();
     nextpage();
     for(i=63;i>0;i-=7) palto(0,0,0,i);
@@ -6982,7 +7003,7 @@ void Logo(void)
 
     while(totalclock < (860+120) && !KB_KeyWaiting())
     {
-        rotatesprite(0,0,65536L,0,BETASCREEN,0,0,2+8+16+64,0,0,xdim-1,ydim-1);
+        rotatesprite(160<<16,100<<16,65536L,0,BETASCREEN,0,0,2+8+64,0,0,xdim-1,ydim-1);
 
         if( totalclock > 120 && totalclock < (120+60) )
         {
@@ -7035,7 +7056,7 @@ void Logo(void)
 
     if(ud.multimode > 1)
     {
-        rotatesprite(0,0,65536L,0,BETASCREEN,0,0,2+8+16+64,0,0,xdim-1,ydim-1);
+        rotatesprite(160<<16,100<<16,65536L,0,BETASCREEN,0,0,2+8+64,0,0,xdim-1,ydim-1);
 
         rotatesprite(160<<16,(104)<<16,60<<10,0,DUKENUKEM,0,0,2+8,0,0,xdim-1,ydim-1);
         rotatesprite(160<<16,(129)<<16,30<<11,0,THREEDEE,0,0,2+8,0,0,xdim-1,ydim-1);
@@ -7178,6 +7199,10 @@ void Startup(void)
    puts("Checking sound inits.");
    SoundStartup();
    loadtmb();
+
+/*   i = fopen("__dump.bin","wb");
+   fwrite(script, 4, MAXSCRIPTSIZE, i);
+   fclose(i);*/
 }
 
 
@@ -7360,7 +7385,7 @@ void copyprotect(void)
 void main(int argc,char **argv)
 {
     long i, j, k, l;
-    int32 tempautorun;
+    int32 tempautorun, wsbk;
 
     copyprotect();
 
@@ -7504,7 +7529,7 @@ void main(int argc,char **argv)
           );
 
         puts("Loading palette/lookups.");
-
+    
 // CTW - MODIFICATION
 /*  if( setgamemode(ScreenMode,ScreenWidth,ScreenHeight) < 0 )
     {
@@ -7521,6 +7546,7 @@ void main(int argc,char **argv)
         setgamemode(ScreenMode,ScreenWidth,ScreenHeight);
     }
 // CTW END - MODIFICATION
+    //setgamemode(vidoption,800,600);
 
     genspriteremaps();
 
@@ -7576,6 +7602,7 @@ void main(int argc,char **argv)
     ud.auto_run = tempautorun;
 
     ud.warp_on = 0;
+    indemomenu = 0;
 
     while ( !(ps[myconnectindex].gm&MODE_END) ) //The whole loop!!!!!!!!!!!!!!!!!!
     {
@@ -7598,7 +7625,12 @@ void main(int argc,char **argv)
                 ud.screen_size = 0;
                 vscrn();
                 ud.screen_size = i;
+                wsbk = widescr;
+                widescr = 0;
+                inbonusmenu = 1;
                 dobonus(0);
+                inbonusmenu = 0;
+                widescr = wsbk;
 
                 if(ud.eog)
                 {
@@ -7797,7 +7829,8 @@ void closedemowrite(void)
 // Seems to happen when player input starts being simulated, but just guessing.
 // This change effectively disables it. The related code is still enabled.
 // char which_demo = 1;
-char which_demo = 0;
+// SBT - BYTEVERSION simply needs to be incremented. Old demos won't play, newly recorded ones will.
+char which_demo = 1;
 // CTW END - MODIFICATION
 
 char in_menu = 0;
@@ -7882,8 +7915,10 @@ long playback(void)
             domovethings();
         }
 
-        if(foundemo == 0)
+        if(foundemo == 0) {
             drawbackground();
+            indemomenu=1;
+        }
         else
         {
             nonsharedkeys();
@@ -9223,7 +9258,7 @@ void dobonus(char bonusonly)
             }
         }
         else break;
-        nextpage();
+        if (totalclock%16==0) nextpage();
     }
 }
 

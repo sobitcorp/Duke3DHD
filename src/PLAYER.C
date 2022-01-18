@@ -30,6 +30,7 @@ Prepared for public release: 03/21/2003 - Charlie Wiederhold, 3D Realms
 
 int32 turnheldtime; //MED
 int32 lastcontroltime; //MED
+char inshoot=0;
 
 void setpal(struct player_struct *p)
 {
@@ -303,7 +304,7 @@ short aim(spritetype *s,short aang)
 void shoot(short i,short atwith)
 {
     short sect, hitsect, hitspr, hitwall, l, sa, p, j, k, scount;
-    long sx, sy, sz, vel, zvel, hitx, hity, hitz, x, oldzvel, dal;
+    long sx, sy, sz, vel, zvel, hitx, hity, hitz, x, oldzvel, dal, horz;
     unsigned char sizx,sizy;
     spritetype *s;
 
@@ -320,7 +321,7 @@ void shoot(short i,short atwith)
         sz = ps[p].posz+ps[p].pyoff+(4<<8);
         sa = ps[p].ang;
 
-        ps[p].crack_time = 777;
+        ps[p].crack_time = 1777;
 
     }
     else
@@ -340,6 +341,8 @@ void shoot(short i,short atwith)
             }
         }
     }
+    if (widescr) horz = (ps[p].horiz - 100) * (320.F/widescr) + 110;
+    else horz = ps[p].horiz;
 
     switch(atwith)
     {
@@ -513,14 +516,14 @@ void shoot(short i,short atwith)
                     if(j == -1)
                     {
                         sa += 16-(TRAND&31);
-                        zvel = (100-ps[p].horiz-ps[p].horizoff)<<5;
+                        zvel = (100-horz-ps[p].horizoff)<<5;
                         zvel += 128-(TRAND&255);
                     }
                 }
                 else
                 {
                     sa += 16-(TRAND&31);
-                    if(j == -1) zvel = (100-ps[p].horiz-ps[p].horizoff)<<5;
+                    if(j == -1) zvel = (100-horz-ps[p].horizoff)<<5;
                     zvel += 128-(TRAND&255);
                 }
                 sz -= (2<<8);
@@ -724,7 +727,7 @@ void shoot(short i,short atwith)
                     sa = getangle(sprite[j].x-sx,sprite[j].y-sy);
                 }
                 else
-                    zvel = (100-ps[p].horiz-ps[p].horizoff)*98;
+                    zvel = (100-horz-ps[p].horizoff)*98;
             }
             else
             {
@@ -812,7 +815,7 @@ void shoot(short i,short atwith)
                     if( sprite[j].picnum != RECON )
                         sa = getangle(sprite[j].x-sx,sprite[j].y-sy);
                 }
-                else zvel = (100-ps[p].horiz-ps[p].horizoff)*81;
+                else zvel = (100-horz-ps[p].horizoff)*81;
                 if(atwith == RPG)
                     spritesound(RPG_SHOOT,i);
 
@@ -921,7 +924,7 @@ void shoot(short i,short atwith)
         case HANDHOLDINGLASER:
 
             if(p >= 0)
-                zvel = (100-ps[p].horiz-ps[p].horizoff)*32;
+                zvel = (100-horz-ps[p].horizoff)*32;
             else zvel = 0;
 
             hitscan(sx,sy,sz-ps[p].pyoff,sect,
@@ -1009,7 +1012,7 @@ void shoot(short i,short atwith)
                 else
                 {
                     sa += 16-(TRAND&31);
-                    zvel = (100-ps[p].horiz-ps[p].horizoff)<<5;
+                    zvel = (100-horz-ps[p].horizoff)<<5;
                     zvel += 128-(TRAND&255);
                 }
 
@@ -1083,7 +1086,7 @@ void shoot(short i,short atwith)
                     zvel = ( (sprite[j].z-sz-dal-(4<<8))*768) / (ldist( &sprite[ps[p].i], &sprite[j]));
                     sa = getangle(sprite[j].x-sx,sprite[j].y-sy);
                 }
-                else zvel = (100-ps[p].horiz-ps[p].horizoff)*98;
+                else zvel = (100-horz-ps[p].horizoff)*98;
             }
             else if(s->statnum != 3)
             {

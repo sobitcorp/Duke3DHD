@@ -27,7 +27,7 @@ Prepared for public release: 03/21/2003 - Charlie Wiederhold, 3D Realms
 #include "duke3d.h"
 
 char *mymembuf;
-char MusicPtr[72000];
+char MusicPtr[MAXMIDILEN];
 
 short global_random;
 short neartagsector, neartagwall, neartagsprite;

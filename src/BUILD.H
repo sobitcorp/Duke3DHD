@@ -4,7 +4,7 @@
 
 #define MAXSECTORS 1024
 #define MAXWALLS 8192
-#define MAXSPRITES 4096
+#define MAXSPRITES 8192
 
 #define MAXTILES 9216
 #define MAXSTATUS 1024
@@ -13,7 +13,7 @@
 #define MAXYDIM 1200
 #define MAXPALOOKUPS 256
 #define MAXPSKYTILES 256
-#define MAXSPRITESONSCREEN 1024
+#define MAXSPRITESONSCREEN 4096
 
 #define CLIPMASK0 (((1L)<<16)+1L)
 #define CLIPMASK1 (((256L)<<16)+64L)
@@ -26,7 +26,7 @@
 	#define EXTERN extern
 #endif
 
-#pragma pack(push,1);
+
 
 //ceilingstat/floorstat:
 //   bit 0: 1 = parallaxing, 0 = not                                 "P"
@@ -112,7 +112,7 @@ typedef struct
 	short lotag, hitag, extra;
 } spritetype;
 
-#pragma pack(pop);
+
 
 EXTERN sectortype sector[MAXSECTORS];
 EXTERN walltype wall[MAXWALLS];

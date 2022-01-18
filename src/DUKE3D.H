@@ -54,7 +54,7 @@ Prepared for public release: 03/21/2003 - Charlie Wiederhold, 3D Realms
 #ifdef VOLUMEONE
     #define BYTEVERSION 27
 #else
-    #define BYTEVERSION 116
+    #define BYTEVERSION 118
 #endif
 
 #define NUMPAGES 1
@@ -106,6 +106,8 @@ Prepared for public release: 03/21/2003 - Charlie Wiederhold, 3D Realms
 #define    ALT_IS_PRESSED ( KB_KeyPressed( sc_RightAlt ) || KB_KeyPressed( sc_LeftAlt ) )
 #define    SHIFTS_IS_PRESSED ( KB_KeyPressed( sc_RightShift ) || KB_KeyPressed( sc_LeftShift ) )
 #define    RANDOMSCRAP EGS(s->sectnum,s->x+(TRAND&255)-128,s->y+(TRAND&255)-128,s->z-(8<<8)-(TRAND&8191),SCRAP6+(TRAND&15),-8,48,48,TRAND&2047,(TRAND&63)+64,-512-(TRAND&2047),i,5)
+
+#define MAXMIDILEN 320000
 
 #define    BLACK 0
 #define    DARKBLUE 1
@@ -274,7 +276,7 @@ extern short numanimwalls,probey,lastprobey;
 
 extern char *mymembuf;
 extern char typebuflen,typebuf[41];
-extern char MusicPtr[72000];
+extern char MusicPtr[MAXMIDILEN];
 extern long msx[2048],msy[2048];
 extern short cyclers[MAXCYCLERS][6],numcyclers;
 extern char myname[32];
@@ -305,7 +307,6 @@ typedef struct user_defs
     int32 m_respawn_items,m_respawn_monsters,m_respawn_inventory,m_recstat,m_monsters_off,detail;
     int32 m_ffire,ffire,m_player_skill,m_level_number,m_volume_number,multimode;
     int32 player_skill,level_number,volume_number,m_marker,marker,mouseflip;
-
 };
 
 typedef struct player_orig
@@ -414,6 +415,7 @@ extern char ipath[80],opath[80];
 extern char music_fn[4][11][13],music_select;
 extern char env_music_fn[4][13];
 extern short camsprite;
+extern int32 widescr, widescrmenus;
 
 // extern char gotz;
 extern char inspace(short sectnum);
