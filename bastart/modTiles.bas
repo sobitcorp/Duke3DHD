@@ -64,6 +64,7 @@ RenderTile (CurrTile)
 End Sub
 
 Public Sub SetTileProps()
+Dim tx As Integer, ty As Integer
 
 If ArtFile.Tiles(CurrTile).Properties.AnimSpeed < 1 Then Form1.mnuIncSpeed.Enabled = False Else Form1.mnuIncSpeed.Enabled = True
 If ArtFile.Tiles(CurrTile).Properties.AnimSpeed > 14 Then Form1.mnuDecSpeed.Enabled = False Else Form1.mnuDecSpeed.Enabled = True
@@ -84,14 +85,12 @@ If AType = "01" Then Form3.Option2.Value = True
 If AType = "10" Then Form3.Option3.Value = True
 If AType = "11" Then Form3.Option4.Value = True
 
-Form3.Text2.Text = ArtFile.Tiles(CurrTile).Properties.OffsetX
-Form3.Text3.Text = ArtFile.Tiles(CurrTile).Properties.OffsetY
-If ArtFile.Tiles(CurrTile).Properties.OffsetX = 0 Then
-Form3.Check1.Value = 0
-Else
-If ArtFile.Tiles(CurrTile).Properties.OffsetX <= 127 Then Form3.Check1.Value = 1 Else Form3.Text2.Text = 255 - Val(Form3.Text2.Text): Form3.Check1.Value = 0
-End If
-If ArtFile.Tiles(CurrTile).Properties.OffsetY <= 127 Then Form3.Check2.Value = 0 Else Form3.Text3.Text = 255 - Val(Form3.Text3.Text): Form3.Check2.Value = 1
+tx = ArtFile.Tiles(CurrTile).Properties.OffsetX
+ty = ArtFile.Tiles(CurrTile).Properties.OffsetY
+If tx > 127 Then: tx = tx - 256
+If ty > 127 Then: ty = ty - 256
+Form3.Text2.Text = tx
+Form3.Text3.Text = ty
 
 'Take the remaining six bites of the Animation Type property, convert them back to decimal. This is the number of frames.
 Form3.Text1.Text = Dec(Right(Bin(ArtFile.Tiles(CurrTile).Properties.AnimType), 6)) + 1
@@ -101,6 +100,7 @@ Public Sub SaveTileProps()
 Dim AType As String
 Dim AFrames As String
 Dim Sign As Byte
+Dim tx As Integer, ty As Integer
 
 'Make a six-bit value out of the number of frames value.
 AFrames = Right(Bin(Val(Form3.Text1.Text) - 1), 6)
@@ -116,16 +116,12 @@ ArtFile.Tiles(CurrTile).Properties.AnimType = Dec(AType & AFrames)
 
 'Set the coord offsets.
 
-ArtFile.Tiles(CurrTile).Properties.OffsetX = Form3.Text2.Text
-ArtFile.Tiles(CurrTile).Properties.OffsetY = Form3.Text3.Text
-
-If ArtFile.Tiles(CurrTile).Properties.OffsetX > 0 Then
-If Form3.Check1.Value = 0 Then ArtFile.Tiles(CurrTile).Properties.OffsetX = 255 - ArtFile.Tiles(CurrTile).Properties.OffsetX
-End If
-
-If ArtFile.Tiles(CurrTile).Properties.OffsetY > 0 Then
-If Form3.Check2.Value = 1 Then ArtFile.Tiles(CurrTile).Properties.OffsetY = ArtFile.Tiles(CurrTile).Properties.OffsetY + 127
-End If
+tx = Form3.Text2.Text
+ty = Form3.Text3.Text
+If tx < 0 Then: tx = tx + 256
+If ty < 0 Then: ty = ty + 256
+ArtFile.Tiles(CurrTile).Properties.OffsetX = tx
+ArtFile.Tiles(CurrTile).Properties.OffsetY = ty
 
 CenterTile
 RenderTile (CurrTile)

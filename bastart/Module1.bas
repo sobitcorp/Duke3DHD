@@ -82,7 +82,7 @@ End If
 
 'Render the raw pixel data to the form.
 If tile = 0 Then Exit Sub
-Dim i As Integer
+Dim i As Integer, tx As Integer, ty As Integer
 Dim o As Integer
 Dim p As Integer
 Dim a As Integer
@@ -145,7 +145,7 @@ Form1.Picture1.Refresh
 End If
 End With
 'If a name can be found for the tile, display it. If the tile isn't in the first artfile, multiply it by the tile number.
-Form1.Label1.Caption = tile & "/" & ArtFile.NumTiles '& ": " & NameTile
+Form1.Label1.Caption = tile & "/" & ArtFile.NumTiles & " (#" & (tile - 1 + ArtFile.LocalStart) & ")" '& ": " & NameTile
 
 If UBound(Names) >= NameTile Then
 If Not Names(NameTile) = "" Then
@@ -162,25 +162,12 @@ End If
 
 
 Form1.Label1.Caption = Form1.Label1.Caption & " - " & ArtFile.Tiles(tile).XSize & "x" & ArtFile.Tiles(tile).YSize
-
-'Add the offsets to the info panel.
-If ArtFile.Tiles(tile).Properties.OffsetX = 0 Then
-Form1.Label1.Caption = Form1.Label1.Caption & " Offsets: " & ArtFile.Tiles(tile).Properties.OffsetX
-
-Else
-If ArtFile.Tiles(tile).Properties.OffsetX <= 127 Then
-Form1.Label1.Caption = Form1.Label1.Caption & " Offsets: -" & ArtFile.Tiles(tile).Properties.OffsetX
-Else
-Form1.Label1.Caption = Form1.Label1.Caption & " Offsets: " & 256 - ArtFile.Tiles(tile).Properties.OffsetX
-End If
-End If
-
-If ArtFile.Tiles(tile).Properties.OffsetY <= 127 Then
-Form1.Label1.Caption = Form1.Label1.Caption & "," & ArtFile.Tiles(tile).Properties.OffsetY
-Else
-Form1.Label1.Caption = Form1.Label1.Caption & ",-" & 256 - ArtFile.Tiles(tile).Properties.OffsetY
-End If
-
+tx = ArtFile.Tiles(tile).Properties.OffsetX
+ty = ArtFile.Tiles(tile).Properties.OffsetY
+If tx > 127 Then: tx = tx - 256
+If ty > 127 Then: ty = ty - 256
+Form1.Label1.Caption = Form1.Label1.Caption & " Offsets: " & tx & "," & ty
+If ArtFile.Tiles(tile).Properties.Upscale > 0 Then: Form1.Label1.Caption = Form1.Label1.Caption & "  (Upscale " & (2 ^ ArtFile.Tiles(tile).Properties.Upscale) & "x)"
 
 
 SetTileProps

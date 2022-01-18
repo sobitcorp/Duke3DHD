@@ -122,6 +122,15 @@ Begin VB.Form Form1
          Caption         =   "Save ART as..."
          Enabled         =   0   'False
       End
+      Begin VB.Menu sep91 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuSuperBatch 
+         Caption         =   "Batch Replace..."
+      End
+      Begin VB.Menu mnuScaleOfs 
+         Caption         =   "Scale offsets when importing"
+      End
       Begin VB.Menu sep4 
          Caption         =   "-"
       End
@@ -136,6 +145,9 @@ Begin VB.Form Form1
       End
       Begin VB.Menu mnuebmp 
          Caption         =   "Export BMP..."
+      End
+      Begin VB.Menu mnubatchi 
+         Caption         =   "Batch Import..."
       End
       Begin VB.Menu mnubatche 
          Caption         =   "Batch Export..."
@@ -224,6 +236,19 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Public Framenum As Integer
+Private batchipath As String
+Private batchiflag As Boolean
+
+
+Function padStrLZ(ByVal src As String, nlen As Integer) As String
+    Do While Len(src) < nlen
+        src = "0" & src
+    Loop
+    padStrLZ = src
+End Function
+
+
+
 Private Sub Command1_Click()
 If CurrTile > 1 Then
 
@@ -255,6 +280,8 @@ End Sub
 
 Private Sub Form_Load()
 Init
+LoadPalette "..\Palette.dat"
+LoadPalette "Palette.dat"
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
@@ -476,9 +503,79 @@ CommonDialog1.Filename = ""
 CommonDialog1.Filter = "Windows Bitmaps (*.BMP)|*.BMP"
 CommonDialog1.ShowOpen
 If Not CommonDialog1.Filename = "" Then
-OpenBMP (CommonDialog1.Filename)
+OpenBMP CommonDialog1.Filename, False
 End If
 End Sub
+
+Private Sub mnubatchi_Click()
+batchi False
+End Sub
+
+Function batchi(multi As Boolean)
+Dim n As Long
+Dim s As String
+batchiflag = False
+If multi = False Then: batchipath = ""
+If batchipath = "" Then
+    CommonDialog1.Filename = ""
+    CommonDialog1.Filter = "Windows Bitmaps (*.BMP)|*.BMP"
+    CommonDialog1.ShowOpen
+    If Not CommonDialog1.Filename = "" Then: batchipath = Mid(CommonDialog1.Filename, 1, InStrRev(CommonDialog1.Filename, "\"))
+End If
+If batchipath = "" Then: Exit Function
+For n = 1 To 256
+    s = Dir(batchipath & "*" & padStrLZ("" & ((n - 1) + ArtFile.LocalStart), 4) & "*.bmp")
+    If s <> "" Then
+        CurrTile = n
+        s = batchipath & s
+        Label1.Caption = "Importing " & n & " / 256..."
+        DoEvents
+        OpenBMP s, True
+        batchiflag = True
+    End If
+Next n
+FillBrowser
+CenterTile
+RenderTile CurrTile
+End Function
+
+Private Sub mnuScaleOfs_Click()
+    mnuScaleOfs.Checked = Not mnuScaleOfs.Checked
+End Sub
+
+Private Sub mnuSuperBatch_Click()
+Dim i As Long, n As Long
+Dim s As String, p As String
+n = 0
+batchipath = ""
+CommonDialog1.Filename = ""
+CommonDialog1.Filter = "Build Engine Tilesets (*.ART)|*.ART"
+CommonDialog1.ShowOpen
+If CommonDialog1.Filename = "" Then: Exit Sub
+If vbOK <> MsgBox("This will overwrite all files named TILES0xx.ART with imported graphics. Make sure you have a backup!", vbOKCancel) Then: Exit Sub
+p = Mid(CommonDialog1.Filename, 1, InStrRev(CommonDialog1.Filename, "\"))
+For i = 0 To 99
+    s = Dir(p & "TILES0" & padStrLZ("" & i, 2) & ".ART")
+    If s <> "" Then
+        batchiflag = False
+        s = p & s
+        OpenArt s
+        DoEvents
+        batchi True
+        DoEvents
+        If batchiflag = True Then
+            n = n + 1
+            SaveArt s, True
+            DoEvents
+        End If
+    End If
+Next i
+If n = 0 Then
+    Label1.Caption = "No TILES0xx.ART files found in selected folder or nothing to import!"
+Else: Label1.Caption = "Batch replace finished. " & n & " ART files modified."
+End If
+End Sub
+
 
 Private Sub mnuIncSpeed_Click()
 With ArtFile.Tiles(CurrTile).Properties

@@ -19,6 +19,7 @@ AnimType As Byte
 OffsetX As Byte
 OffsetY As Byte
 AnimSpeed As Byte
+Upscale As Byte
 End Type
 
 
@@ -51,6 +52,8 @@ Dim tByte As Byte
 Dim i As Integer
 Dim o As Integer
 Dim p As Integer
+Dim l As Long
+Dim bb() As Byte
 
 
 Dim HeaderEnd As Long
@@ -121,19 +124,26 @@ Get #1, , .Properties.OffsetX
 Get #1, , .Properties.OffsetY
 'MsgBox .Properties.OffsetX & " " & .Properties.OffsetY
 Get #1, , .Properties.AnimSpeed
+.Properties.Upscale = (.Properties.AnimSpeed / (2 ^ 4)) And 3
+.Properties.AnimSpeed = .Properties.AnimSpeed And &HCF
 
-
+l = .XSize
+l = l * .YSize
+If l <= 0 Then: GoTo nxt
+ReDim bb(l - 1)
 ReDim .PicData.Pixels(.XSize, .YSize)
+Get #1, PropsEnd + lImageData, bb
+lImageData = lImageData + l
 
-For o = 1 To .XSize
-For p = 1 To .YSize
-Get #1, PropsEnd + lImageData, .PicData.Pixels(o, p)
-lImageData = lImageData + 1
+l = .YSize
+For o = 1 To .YSize
+For p = 1 To .XSize
+.PicData.Pixels(p, o) = bb((p - 1) * l + o - 1)
 Next p
 Next o
 
+nxt:
 End With
-
 
 Next i
 
@@ -176,6 +186,9 @@ DoEvents
 Dim i As Integer
 Dim o As Integer
 Dim p As Integer
+Dim l As Long, m As Long
+Dim bb() As Byte
+Dim bbb As Byte
 
 Dim HeaderEnd As Long
 Dim XSizeEnd As Long
@@ -204,22 +217,24 @@ With ArtFile.Tiles(i)
 Put #1, HeaderEnd + (i - 1) * 2, .XSize
 Put #1, XSizeEnd + (i - 1) * 2, .YSize
 Put #1, YSizeEnd + (i - 1) * 4, .Properties.AnimType
-
-
 Put #1, YSizeEnd + (i - 1) * 4 + 1, .Properties.OffsetX
-
-
 Put #1, YSizeEnd + (i - 1) * 4 + 2, .Properties.OffsetY
+bbb = .Properties.AnimSpeed + (.Properties.Upscale * (2 ^ 4))
+Put #1, YSizeEnd + (i - 1) * 4 + 3, bbb
 
-Put #1, YSizeEnd + (i - 1) * 4 + 3, .Properties.AnimSpeed
-
-For o = 1 To .XSize
-For p = 1 To .YSize
-Put #1, PropsEnd + lImageData, .PicData.Pixels(o, p)
-lImageData = lImageData + 1
+l = .YSize
+m = l * .XSize
+If m <= 0 Then: GoTo nxt
+ReDim bb(m - 1)
+For o = 1 To .YSize
+For p = 1 To .XSize
+bb((p - 1) * l + o - 1) = .PicData.Pixels(p, o)
 Next p
 Next o
+Put #1, PropsEnd + lImageData, bb
+lImageData = lImageData + m
 
+nxt:
 End With
 
 Next i

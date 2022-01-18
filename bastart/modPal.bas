@@ -22,7 +22,7 @@ Dim eb As Byte 'Placeholder empty byte
 Y = 0
 
 
-
+If Dir(File) = "" Then: Exit Sub
 Open File For Binary As #1
 
 'Skip a .pal file's header.

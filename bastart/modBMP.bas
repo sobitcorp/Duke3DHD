@@ -83,7 +83,7 @@ Form1.Label1.Caption = "Done."
 
 End Sub
 
-Public Sub OpenBMP(File As String)
+Public Sub OpenBMP(File As String, batch As Boolean)
 
 'On Error GoTo err
 
@@ -91,9 +91,12 @@ Dim tI As Integer
 Dim tL As Long 'Number of bytes read.
 Dim sizex As Long
 Dim sizey As Long
+Dim osx As Long, osy As Long, tx As Long, ty As Long
+Dim scx As Double, scy As Double
 Dim i As Integer
 Dim o As Integer
 Dim tB As Byte
+Dim bbb() As Byte
 
 ArtFile.Tiles(CurrTile).Changed = True
 Open File For Binary As #1
@@ -113,32 +116,57 @@ AddTile 1
 CurrTile = 1
 Else
 'Update the image size.
+osx = ArtFile.Tiles(CurrTile).XSize
+osy = ArtFile.Tiles(CurrTile).YSize
+scx = sizex
+scy = sizey
+scx = scx / osx
+scy = scy / osy
+If Form1.mnuScaleOfs.Checked Then
+    tx = ArtFile.Tiles(CurrTile).Properties.OffsetX
+    ty = ArtFile.Tiles(CurrTile).Properties.OffsetY
+    If tx > 127 Then: tx = tx - 256
+    If ty > 127 Then: ty = ty - 256
+    tx = tx * scx
+    ty = ty * scy
+    If tx > 127 Then: tx = 127
+    If ty > 127 Then: ty = 127
+    If tx < -128 Then: tx = -128
+    If ty < -128 Then: ty = -128
+    If tx < 0 Then: tx = tx + 256
+    If ty < 0 Then: ty = ty + 256
+    ArtFile.Tiles(CurrTile).Properties.OffsetX = tx
+    ArtFile.Tiles(CurrTile).Properties.OffsetY = ty
+End If
+scx = Log((2 ^ ArtFile.Tiles(CurrTile).Properties.Upscale) * ((scx + scy) / 2)) / Log(2)
+If scx < 0 Then: scx = 0
+If scx > 3 Then: scx = 3
+ArtFile.Tiles(CurrTile).Properties.Upscale = scx
 ArtFile.Tiles(CurrTile).XSize = sizex
 ArtFile.Tiles(CurrTile).YSize = sizey
 End If
 tB = 0
 tL = 0
 ReDim ArtFile.Tiles(CurrTile).PicData.Pixels(ArtFile.Tiles(CurrTile).XSize, ArtFile.Tiles(CurrTile).YSize)
-
+ReDim bbb(ArtFile.Tiles(CurrTile).XSize)
 
 For o = ArtFile.Tiles(CurrTile).YSize To 1 Step -1
-For p = 1 To ArtFile.Tiles(CurrTile).XSize
-tL = tL + 1
-tB = tB + 1
-Get #1, 1078 + tL, ArtFile.Tiles(CurrTile).PicData.Pixels(p, o)
-
-If tB = 4 Then tB = 0 'Check if a multiple of 4 bytes was reached.
-Next p
-If tB > 0 Then tL = tL + 4 - tB: tB = 0 'Skip the 4-byte filling padding if it is there.
+    Get #1, 1079 + tL, bbb
+    For p = 1 To ArtFile.Tiles(CurrTile).XSize
+        ArtFile.Tiles(CurrTile).PicData.Pixels(p, o) = bbb(p - 1)
+    Next p
+    tL = tL + ArtFile.Tiles(CurrTile).XSize
+    tB = tB + ArtFile.Tiles(CurrTile).XSize Mod 4
+    If tB = 4 Then tB = 0 'Check if a multiple of 4 bytes was reached.
+    If tB > 0 Then tL = tL + 4 - tB: tB = 0 'Skip the 4-byte filling padding if it is there.
 Next o
 
 Close #1
+
+If batch = True Then: Exit Sub
 FillBrowser
 CenterTile
-
 RenderTile (CurrTile)
-
-
 Exit Sub
 err:
 If FreeFile > 1 Then Close #1

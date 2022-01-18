@@ -14,37 +14,21 @@ Begin VB.Form Form3
    ScaleWidth      =   4680
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
-   Begin VB.CheckBox Check2 
-      Caption         =   "Negative"
-      Height          =   195
-      Left            =   1680
-      TabIndex        =   15
-      Top             =   2640
-      Width           =   975
-   End
-   Begin VB.CheckBox Check1 
-      Caption         =   "Negative"
-      Height          =   195
-      Left            =   1680
-      TabIndex        =   14
-      Top             =   2280
-      Width           =   975
-   End
    Begin VB.TextBox Text3 
       Height          =   285
       Left            =   2880
-      MaxLength       =   3
+      MaxLength       =   4
       TabIndex        =   13
       Top             =   2640
-      Width           =   375
+      Width           =   615
    End
    Begin VB.TextBox Text2 
       Height          =   285
       Left            =   2880
-      MaxLength       =   3
+      MaxLength       =   4
       TabIndex        =   12
       Top             =   2280
-      Width           =   375
+      Width           =   615
    End
    Begin VB.OptionButton Option4 
       Caption         =   "Backwards"
@@ -150,8 +134,8 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Private Sub Command1_Click()
 If Val(Text1.Text) < 1 Or Val(Text1.Text) > 64 Then MsgBox "Please enter a value between 1 and 64.", vbOKOnly + vbExclamation, "bastART - Set Anim Speed": Exit Sub
-If Val(Text2.Text) < 0 Or Val(Text1.Text) > 127 Then MsgBox "Please enter a value between 0 and 127.", vbOKOnly + vbExclamation, "bastART - Set X Offset": Exit Sub
-If Val(Text3.Text) < 0 Or Val(Text1.Text) > 127 Then MsgBox "Please enter a value between 0 and 127.", vbOKOnly + vbExclamation, "bastART - Set Y Offset": Exit Sub
+If Val(Text2.Text) < -128 Or Val(Text2.Text) > 127 Then MsgBox "Please enter a value between -128 and 127.", vbOKOnly + vbExclamation, "bastART - Set X Offset": Exit Sub
+If Val(Text3.Text) < -128 Or Val(Text3.Text) > 127 Then MsgBox "Please enter a value between -128 and 127.", vbOKOnly + vbExclamation, "bastART - Set Y Offset": Exit Sub
 
 ArtFile.Tiles(CurrTile).Changed = True
 SaveTileProps

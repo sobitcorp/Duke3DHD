@@ -25,7 +25,7 @@ Begin VB.Form About
       Width           =   855
    End
    Begin VB.Timer Timer1 
-      Interval        =   100
+      Interval        =   32
       Left            =   0
       Top             =   0
    End
