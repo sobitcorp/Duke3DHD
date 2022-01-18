@@ -1,1 +1,124 @@
+<html>
+<head>
+<title>bastART Readme</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
 
+<body bgcolor="#FFFFFF">
+<p><b>bastART 1.1 by Marijn Kentie (kentieman@tiscalimail.nl).</b></p>
+<p>&nbsp;</p>
+<p><b>1. Overview</b></p>
+<p> BastART is a .ART file editor for Windows. It includes core EditART tile editing 
+  functionality, and some enhanced and new functions. It has been tested with 
+  a number of games; see the Compatibility section for more information. Please 
+  note that bastART does not, and will not, include graphics editing functions.</p>
+<p> I made bastART to familiarize myself with binary file I/O, and working with/reverse-engineering 
+  other people's file types. Every file operation, including .pal and .bmp file 
+  reading/writing, is hand-written. The program is based off Ken Silverman's &quot;Artform.txt&quot; 
+  file that came with the original Duke Nukem 3D. That game's source code and 
+  the EditART source weren't used. Visual Basic 6 source code is included, feel 
+  free to add features/port it, whatever, as long as you give me proper credit. 
+  I know the ART loading/saving is slow, but as far as I know there's nothing 
+  I can do about that (except from porting the code to C++).</p>
+<p>&nbsp;</p>
+<p><b>2. Features</b></p>
+<ul>
+  <li>Open and convert both Windows and Build palette files.</li>
+  <li>Easy to use tile browser.</li>
+  <li>Set and preview tile animation properties.</li>
+  <li>Set and preview tile alignment offsets.</li>
+  <li>Import and (batch) export BMP files.</li>
+  <li>Insert, delete and (batch) clear tiles, or change their canvas size.</li>
+  <li>Create new ART files from scratch.</li>
+  <li>View tiles at different scales (1x, 2x, 4x 8x).</li>
+  <li>Fast tile rendering.</li>
+</ul>
+<p>&nbsp;</p>
+<p> <b>3. Usage</b></p>
+<p> You need a palette file for the ART file you want to load. Palettes can be 
+  in Windows .PAL format, or Build .DAT format. After loading a palette (it's 
+  colors will appear in a bar), you're able to load an art file, or create a new 
+  one. When creating a new one, an empty 256-tile file is created. When you have 
+  loaded a palette, you're also able to save that palette again. This allows for 
+  converting between palette formats.</p>
+<p>To quickly select the tile you want to view, you can access the Browser from 
+  the &quot;View&quot; menu. In this menu you can also enable the alignment crosshair, 
+  or change the rendering scale of the tiles. When you have selected the correct 
+  tile, you can use the functions from the &quot;Tile&quot; menu on it:</p>
+<table width="75%" border="1">
+  <tr>
+    <td width="20%">Import BMP<br>
+      Export BMP<br>
+      Batch Export</td>
+    <td width="80%">These functions convert between .ART tiles and Windows bitmaps. 
+      Batch export is handy if you want to, for example, export all the frames 
+      for a monster sprite.</td>
+  </tr>
+  <tr>
+    <td height="61" width="20%"> 
+      <p>Insert after current<br>
+        Insert before current<br>
+        Delete <br>
+        Resize<br>
+        Clear<br>
+        Batch clear</p>
+      </td>
+    <td height="61" width="80%">Standard ART file editing functions. Clear tiles 
+      to keep .ART files small.</td>
+  </tr>
+  <tr>
+    <td width="20%" height="27"> 
+      <p>Preview animation<br>
+        Animation speed</p>
+      </td>
+    <td width="80%" height="27">Tile animating functions.</td>
+  </tr>
+  <tr>
+    <td width="20%">Properties</td>
+    <td width="80%">Opens the file properties window, in which you can set the 
+      tile's animation type, the number of frames in the animation, and the tile 
+      alignment offsets.</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<p><b>4. Compatibility</b></p>
+<p>The program has been tested with the following games' art files:</p>
+<ul>
+  <li>Duke Nukem 3D - OK.</li>
+  <li>Powerslave/Exhumed (demo) - OK.</li>
+  <li>William Shatner's Tekwar (shareware) - OK.<br>
+  </li>
+  <li> Shadow Warrior - OK.</li>
+  <li>Blood (shareware) - ART file too big (4096 tiles).<br>
+  </li>
+</ul>
+<p>Of course, it's 100% compatible with EditART as well.</p>
+<p>&nbsp;</p>
+<p><b>5. Revision history.</b></p>
+<p>1.1<br>
+  -Fixed tile offset system.<br>
+  -Animation previewing speed now correct.<br>
+  -Animation previewing now works with all animation types.<br>
+  -Animation related functions now unavailable if a tile isn't animated.<br>
+  -Fixed bugs which would corrupt newly created ART files.<br>
+  -Fixed a bug which would crash the program when deleting a tile.<br>
+  -The frames in an animation can exceed the tile's size, but these frames are 
+  not previewed. <br>
+  -Fixed tiles not showing in browser when they caused the tile count to not be 
+  devidable by 8.<br>
+  -Made new files start with 256 empty tiles, which both saves users work, and 
+  improves compatibility.<br>
+  -Added an About Box to the program.<br>
+  -Rewrote the documentation.<br>
+  -Added &quot;Click a tile to open it.&quot; text to browser.<br>
+  <br>
+  <b><br>
+  </b>1.0<b><br>
+  </b>-First release.<br>
+  -Tile offset system doesn't work correctly (both value ranges and rendering).<br>
+  -Animation previewing speed incorrect.<br>
+</p>
+<p><br>
+</p>
+</body>
+</html>
