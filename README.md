@@ -1,4 +1,4 @@
-# Duke3DHD - HD textures and Widescreen in DOS Duke3D
+# Duke3DHD - HD and Widescreen in DOS Duke3D
 
 **Requirements:**
 * Duke3D (any v1.3 - v1.5)
