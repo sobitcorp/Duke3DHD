@@ -12,6 +12,23 @@
 **Removal:**
 To run Duke3D without HD textures, simply delete/move/rename the ART files and run your regular DUKE3D.EXE
 
+**Controls:**
+Press F11 in-game to toggle widescreen.
+
+**Resolutions:**
+The following are supported:
+* 320x200
+* 640x480
+* 800x600
+* 1024x768 *
+* 1280x1024 *
+
+*You need to manually edit `ScreenWidth` and `ScreenHeight` in your `DUKE3D.CFG` to set these.
+
+The widescreen effect is achieved by playing on a widescreen monitor and letting it stretch the signal to fill the screen.
+
+For advanced users: you can customize the widescreen ratio by manually modifying `Widescreen` and `WidescreenMenus` in your `DUKE3D.CFG`, where the value is calculated using (height / width) * (320 / 0.75). Set both values to 1 to revert to the default width:height ratio of 16:9.
+
 # HD textures
 
 All but one of the upscaled tiles come from [Phredreeke's Enhanced Resource Pack](https://www.moddb.com/mods/enhanced-resource-pack-for-duke-nukem-3d).
